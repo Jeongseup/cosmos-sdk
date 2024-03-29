@@ -30,6 +30,8 @@ func (k Keeper) initializeDelegation(ctx sdk.Context, val sdk.ValAddress, del sd
 func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingtypes.ValidatorI,
 	startingPeriod, endingPeriod uint64, stake sdk.Dec,
 ) (rewards sdk.DecCoins) {
+	jl.Error("Keeper/calculateDelegationRewardsBetween")
+
 	// sanity check
 	if startingPeriod > endingPeriod {
 		panic("startingPeriod cannot be greater than endingPeriod")
@@ -40,6 +42,9 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingty
 		panic("stake should not be negative")
 	}
 
+	jl.Info(fmt.Sprintf("starting period: %d", startingPeriod))
+	jl.Info(fmt.Sprintf("ending period: %d", endingPeriod))
+
 	// return staking * (ending - starting)
 	starting := k.GetValidatorHistoricalRewards(ctx, val.GetOperator(), startingPeriod)
 	ending := k.GetValidatorHistoricalRewards(ctx, val.GetOperator(), endingPeriod)
@@ -47,6 +52,13 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingty
 	if difference.IsAnyNegative() {
 		panic("negative rewards should not be possible")
 	}
+
+	jl.Info(fmt.Sprintf("starting: %v", starting))
+	jl.Info(fmt.Sprintf("ending: %v", ending))
+	jl.Info(fmt.Sprintf("difference: %v", difference))
+	jl.Info(fmt.Sprintf("stake: %v", stake))
+	jl.Info(fmt.Sprintf("diff * stake: %v", difference.MulDec(stake)))
+
 	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
 	rewards = difference.MulDecTruncate(stake)
 	return
@@ -61,6 +73,11 @@ func (k Keeper) CalculateDelegationRewards(ctx sdk.Context, val stakingtypes.Val
 		// started this height, no rewards yet
 		return
 	}
+
+	jl.Info(fmt.Sprintf("context height: %v", ctx.BlockHeight()))
+	jl.Info(fmt.Sprintf("starting info pervious period: %v", startingInfo.PreviousPeriod))
+	jl.Info(fmt.Sprintf("starting info height: %v", startingInfo.Height))
+	jl.Info(fmt.Sprintf("starting info stake: %v", startingInfo.Stake))
 
 	startingPeriod := startingInfo.PreviousPeriod
 	stake := startingInfo.Stake
@@ -97,7 +114,12 @@ func (k Keeper) CalculateDelegationRewards(ctx sdk.Context, val stakingtypes.Val
 	// equal to current stake here. We cannot use Equals because stake is truncated
 	// when multiplied by slash fractions (see above). We could only use equals if
 	// we had arbitrary-precision rationals.
-	currentStake := val.TokensFromShares(del.GetShares())
+	currentStake := val.TokensFromShares(del.GetShares()) //   tokens: "70000000"
+
+	jl.Info(fmt.Sprintf("after slashing check, stake: %v", stake))
+	jl.Info(fmt.Sprintf("val tokens: %v", val.GetTokens()))
+	jl.Info(fmt.Sprintf("del shares: %v", del.GetShares()))
+	jl.Info(fmt.Sprintf("current stake: %v", currentStake))
 
 	if stake.GT(currentStake) {
 		// AccountI for rounding inconsistencies between:
@@ -131,8 +153,12 @@ func (k Keeper) CalculateDelegationRewards(ctx sdk.Context, val stakingtypes.Val
 		}
 	}
 
+	jl.Info(fmt.Sprintf("before reward: %v", rewards))
+
 	// calculate rewards for final period
 	rewards = rewards.Add(k.calculateDelegationRewardsBetween(ctx, val, startingPeriod, endingPeriod, stake)...)
+	jl.Info(fmt.Sprintf("after reward: %v", rewards))
+
 	return rewards
 }
 

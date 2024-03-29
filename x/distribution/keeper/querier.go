@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	"os"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -10,6 +11,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
@@ -129,6 +131,9 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
+	logger := log.NewTMLogger(os.Stdout)
+	logger.Error("Hello!! I'm Jeongseup. I'm testing distribution module!@!@")
+
 	// branch the context to isolate state changes
 	ctx, _ = ctx.CacheContext()
 
@@ -170,6 +175,8 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 
 	var delRewards []types.DelegationDelegatorReward
 
+	logger := log.NewTMLogger(os.Stdout)
+	logger.Info("Hello!! I'm Jeongseup. I'm testing distribution module!")
 	k.stakingKeeper.IterateDelegations(
 		ctx, params.DelegatorAddress,
 		func(_ int64, del stakingtypes.DelegationI) (stop bool) {

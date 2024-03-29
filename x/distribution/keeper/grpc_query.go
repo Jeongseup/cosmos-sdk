@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -115,6 +116,8 @@ func (k Keeper) ValidatorSlashes(c context.Context, req *types.QueryValidatorSla
 
 // DelegationRewards the total rewards accrued by a delegation
 func (k Keeper) DelegationRewards(c context.Context, req *types.QueryDelegationRewardsRequest) (*types.QueryDelegationRewardsResponse, error) {
+	jl.Error("Keeper/DelegationRewards")
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
@@ -148,8 +151,15 @@ func (k Keeper) DelegationRewards(c context.Context, req *types.QueryDelegationR
 		return nil, types.ErrNoDelegationExists
 	}
 
+	// beforeRewards := k.CalculateDelegationRewards(ctx, val, del, 3)
+	// jl.Debug(fmt.Sprintf("before incremnet rewards : %v", beforeRewards))
+
 	endingPeriod := k.IncrementValidatorPeriod(ctx, val)
+	// ctx.Logger().Info(fmt.Sprintf("adding a new module: %s", moduleName))
+	jl.Debug(fmt.Sprintf("ending period: %d", endingPeriod))
+
 	rewards := k.CalculateDelegationRewards(ctx, val, del, endingPeriod)
+	jl.Debug(fmt.Sprintf("after increment rewards : %v", rewards))
 
 	return &types.QueryDelegationRewardsResponse{Rewards: rewards}, nil
 }
@@ -163,6 +173,10 @@ func (k Keeper) DelegationTotalRewards(c context.Context, req *types.QueryDelega
 	if req.DelegatorAddress == "" {
 		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
 	}
+
+	jl.Info("Hello!! I'm Jeongseup. I'm testing distribution module!@!@ in total")
+	jl.Error("Hello!! I'm Jeongseup. I'm testing distribution module!@!@ in total")
+	jl.Debug("Hello!! I'm Jeongseup. I'm testing distribution module!@!@ in total")
 
 	ctx := sdk.UnwrapSDKContext(c)
 

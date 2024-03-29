@@ -62,7 +62,7 @@ func (k Keeper) AllocateTokens(
 				sdk.NewAttribute(types.AttributeKeyValidator, proposerValidator.GetOperator().String()),
 			),
 		)
-
+		jl.Error("Keeper/AllocateTokens For Proposer Validator")
 		k.AllocateTokensToValidator(ctx, proposerValidator, proposerReward)
 		remaining = remaining.Sub(proposerReward)
 	} else {
@@ -97,6 +97,7 @@ func (k Keeper) AllocateTokens(
 		powerFraction := sdk.NewDec(vote.Validator.Power).QuoTruncate(sdk.NewDec(totalPreviousPower))
 		reward := feeMultiplier.MulDecTruncate(powerFraction)
 
+		jl.Error("Keeper/AllocateTokens For Bonded Validator")
 		k.AllocateTokensToValidator(ctx, validator, reward)
 		remaining = remaining.Sub(reward)
 	}
@@ -109,6 +110,8 @@ func (k Keeper) AllocateTokens(
 // AllocateTokensToValidator allocate tokens to a particular validator,
 // splitting according to commission.
 func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val stakingtypes.ValidatorI, tokens sdk.DecCoins) {
+	jl.Error("Keeper/AllocateTokensToValidator")
+	jl.Error(fmt.Sprintf("total allocated tokens(commission+reward): %v", tokens))
 	// split tokens between validator and delegators according to commission
 	commission := tokens.MulDec(val.GetCommission())
 	shared := tokens.Sub(commission)
@@ -127,8 +130,15 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val stakingtypes.Vali
 
 	// update current rewards
 	currentRewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
+	jl.Debug(fmt.Sprintf("in begin blocker, curret reward : %v", currentRewards))
+
+	jl.Info(fmt.Sprintf("in begin blocker, got new commission : %v", commission))
+	jl.Info(fmt.Sprintf("in begin blocker, got new reward : %v << it'll be added to delegator's reward", shared))
+
 	currentRewards.Rewards = currentRewards.Rewards.Add(shared...)
+
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), currentRewards)
+	jl.Debug(fmt.Sprintf("in begin blocker, curret reward : %v", currentRewards))
 
 	// update outstanding rewards
 	ctx.EventManager().EmitEvent(

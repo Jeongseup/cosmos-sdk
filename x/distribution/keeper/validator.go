@@ -26,8 +26,11 @@ func (k Keeper) initializeValidator(ctx sdk.Context, val stakingtypes.ValidatorI
 
 // increment validator period, returning the period just ended
 func (k Keeper) IncrementValidatorPeriod(ctx sdk.Context, val stakingtypes.ValidatorI) uint64 {
+	jl.Error("Keeper/IncrementValidatorPeriod")
+
 	// fetch current rewards
 	rewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
+	jl.Debug(fmt.Sprintf("fetched validator rewards: %v", rewards))
 
 	// calculate current ratio
 	var current sdk.DecCoins
@@ -44,21 +47,37 @@ func (k Keeper) IncrementValidatorPeriod(ctx sdk.Context, val stakingtypes.Valid
 
 		current = sdk.DecCoins{}
 	} else {
+
+		jl.Info(fmt.Sprintf("current rewards in validator pool: {%v, %v}", rewards.Period, rewards.Rewards))
+		jl.Info(fmt.Sprintf("currernt validator tokens: %v , %v", val.GetTokens(), val.GetTokens().ToDec()))
+
 		// note: necessary to truncate so we don't allow withdrawing more rewards than owed
 		current = rewards.Rewards.QuoDecTruncate(val.GetTokens().ToDec())
 	}
 
 	// fetch historical rewards for last period
 	historical := k.GetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period-1).CumulativeRewardRatio
+	jl.Info(fmt.Sprintf("historical reward ratio rewards: %v", historical))
 
 	// decrement reference count
 	k.decrementReferenceCount(ctx, val.GetOperator(), rewards.Period-1)
 
 	// set new historical rewards with reference count of 1
+	// added current? :
+	jl.Info(fmt.Sprintf("current will add to historcal reward ratio: %v", current))
+
 	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period, types.NewValidatorHistoricalRewards(historical.Add(current...), 1))
+
+	// whart happened?
+	rewards2 := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
+	jl.Debug(fmt.Sprintf("updated validator rewards: %v", rewards2))
 
 	// set current rewards, incrementing period by 1
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.DecCoins{}, rewards.Period+1))
+
+	// whart happened?
+	rewards3 := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
+	jl.Debug(fmt.Sprintf("updated validator rewards: %v", rewards3))
 
 	return rewards.Period
 }
